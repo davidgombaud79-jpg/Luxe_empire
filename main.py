@@ -5,6 +5,10 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({'status': 'Luxe Empire FFmpeg service is running'})
+
 @app.route('/process', methods=['POST'])
 def process_video():
     data = request.json
