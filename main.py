@@ -46,6 +46,56 @@ def get_token():
     )
     return jsonify(r.json())
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+@app.route('/publish_tiktok', methods=['POST'])
+def publish_tiktok():
+    data = request.json
+    access_token = data.get('access_token')
+    video_url = data.get('video_url')
+    title = data.get('title', 'Luxe Empire')
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json; charset=UTF-8'
+    }
+
+    # Télécharger la vidéo
+    r = requests.get(video_url)
+    video_bytes = r.content
+    video_size = len(video_bytes)
+
+    # Étape 1 : Init upload
+    init_payload = {
+        "post_info": {
+            "title": title,
+            "privacy_level": "SELF_ONLY",
+            "disable_duet": False,
+            "disable_comment": False,
+            "disable_stitch": False
+        },
+        "source_info": {
+            "source": "FILE_UPLOAD",
+            "video_size": video_size,
+            "chunk_size": video_size,
+            "total_chunk_count": 1
+        }
+    }
+
+    init_r = requests.post(
+        'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/',
+        json=init_payload,
+        headers=headers
+    )
+    init_data = init_r.json()
+
+    if 'data' not in init_data:
+        return jsonify({'error': 'Init failed', 'details': init_data})
+
+    publish_id = init_data['data']['publish_id']
+    upload_url = init_data['data']['upload_url']
+
+    # Étape 2 : Upload vidéo
+    upload_headers = {
+        'Content-Type': 'video/mp4',
+        'Content-Range': f'bytes 0-{video_size-1}/{video_size}'
+    }
+    upload_r = requests.put
